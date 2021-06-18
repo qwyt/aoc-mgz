@@ -180,12 +180,18 @@ def parse_action(action_type, data):
         object_id, = struct.unpack_from('<3xI', data)
         return dict(object_ids=[object_id])
     if action_type == Action.WALL:
-        selection_count, player_id, x_start, y_start, x_end, y_end, z0, building_id, z1, const = struct.unpack_from(
-            '<7b2h1i', data)
+        selection_count, = struct.unpack_from('b', data)
+        offset = len(data) - selection_count * 4
 
-        object_ids = []
-        if selection_count > 0 and len(data) >= 15 + (selection_count * 4):
-            object_ids = struct.unpack_from('<' + str(selection_count) + 'I', data[15:])
+        if offset > 15:
+            # In DE recordings all coordinates are prefixed with a zero.
+            player_id, x_start, y_start, x_end, y_end, building_id, z1, const = struct.unpack_from(
+                '<bxbxbxbxbx2h1i', data, offset=1)
+        else:
+            player_id, x_start, y_start, x_end, y_end, building_id, z1, const = struct.unpack_from(
+                '<5bx2h1i', data, offset=1)
+
+        object_ids = struct.unpack_from('<' + str(selection_count) + 'I', data[offset:])
 
         return dict(player_id=player_id,
                     x=x_start,
